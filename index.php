@@ -343,7 +343,7 @@
         ";
                     $result = mysqli_query($conexion, $sql);
                     $row = mysqli_fetch_assoc($result);
-                    echo number_format($row['streak'] ?? 0, 1); 
+                    echo number_format($row['streak'] ?? 0, 1);
                     ?> km
 
                 </div>
@@ -397,28 +397,31 @@
         <!-- Recent Activities -->
         <div class="table-card">
             <div class="d-flex justify-content-between align-items-center p-4">
-                <h5 class="mb-0">Recent Activities</h5>
+                <h5 class="mb-0">Corridas Recientes</h5>
+                <!--
                 <div class="d-flex gap-2">
-                    <input type="text" class="form-control" placeholder="Search activities..."
+                    <input type="text" class="form-control" placeholder="Buscar datos..."
                         style="width: 250px;" onkeyup="searchTable()">
                     <select class="form-select" style="width: 150px;">
-                        <option>All Activities</option>
-                        <option>Completed</option>
-                        <option>In Progress</option>
+                        <option>Todas</option>
+                        <option>Finalizadas</option>
+                        <option>Pendientes</option>
+                        <option>Incompleta</option>
                     </select>
                 </div>
+                -->
             </div>
             <table class="table" id="activitiesTable">
                 <thead>
                     <tr>
-                        <th>Runner</th>
-                        <th>Date</th>
-                        <th>Distance</th>
-                        <th>Time</th>
-                        <th>Pace</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th>Corredor</th>
+                        <th>Fecha</th>
+                        <th>Distancia</th>
+                        <th>Tiempo</th>
+                        <th>Ritmo</th>
+                        <th>Ubicacion</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -433,7 +436,7 @@
                     $result = mysqli_query($conexion, $sql);
 
                     while ($row = mysqli_fetch_array($result)) {
-                        $statusClass = $row['Estado'] == 'Completado' ? 'bg-success' : 'bg-warning';
+                        $statusClass = $row['Estado'] == 'Finalizada' ? 'bg-success' : 'bg-warning';
                     ?>
                         <tr>
                             <td>
@@ -443,19 +446,20 @@
                                     </div>
                                     <div>
                                         <div class="fw-semibold"><?php echo $row['Usuario']; ?></div>
-                                        <small class="text-muted">Runner</small>
+              
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <div><?php echo date('M d, Y', strtotime($row['Fecha'])); ?></div>
+                                <div><?php echo date('d-m-Y', strtotime($row['Fecha'])); ?></div>
                                 <small class="text-muted"><?php echo date('h:i A', strtotime($row['Fecha'])); ?></small>
                             </td>
+
                             <td>
                                 <div class="fw-semibold"><?php echo $row['KM']; ?> km</div>
                             </td>
                             <td><?php echo $row['Tiempo']; ?></td>
-                            <td><?php echo $row['pace']; ?> /km</td>
+                            <td><?php echo $row['pace']; ?> min/km</td>
                             <td>
                                 <i class="fas fa-map-marker-alt text-primary me-1"></i>
                                 <?php echo $row['Ubicacion']; ?>
@@ -467,12 +471,12 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-light" data-toggle="modal"
-                                        data-target="#editChildresn<?php echo $row['ID']; ?>">
+                                    <button class="btn btn-sm btn-light" data-bs-toggle="modal"
+                                        data-bs-target="#editChildresn<?php echo $row['ID']; ?>">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-light text-danger" data-toggle="modal"
-                                        data-target="#editChildresn1<?php echo $row['ID']; ?>">
+                                    <button class="btn btn-sm btn-light text-danger" data-bs-toggle="modal"
+                                        data-bs-target="#editChildresn1<?php echo $row['ID']; ?>">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
