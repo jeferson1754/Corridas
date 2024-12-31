@@ -459,7 +459,7 @@
                                 <div class="fw-semibold"><?php echo $row['KM']; ?> km</div>
                             </td>
                             <td><?php echo $row['Tiempo']; ?></td>
-                            <td><?php echo $row['pace']; ?> min/km</td>
+                            <td><?php echo $row['pace']?? 0; ?> min/km</td>
                             <td>
                                 <i class="fas fa-map-marker-alt text-primary me-1"></i>
                                 <?php echo $row['Ubicacion']; ?>
