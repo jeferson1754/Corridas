@@ -5,8 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Running Analytics</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
     <style>
         :root {
             --primary: #2563EB;
@@ -192,247 +194,341 @@
 <body>
     <?php require 'bd.php'; ?>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="mb-0">Running Analytics</h1>
-                <button class="btn btn-primary" data-toggle="modal" data-target="#editChildresn2">
-                    <i class="fas fa-plus me-2"></i>
-                    Record Run
-                </button>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">Dashboard de Corridas</h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editChildresn2">
+                <i class="fas fa-plus me-2"></i>
+                Nueva Carrera
+            </button>
+        </div>
+
+
+        <?php include('ModalCrear.php'); ?>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <?php
+                $query = "SELECT 
+                    SUM(CASE 
+                        WHEN MONTH(Fecha) = MONTH(CURRENT_DATE()) AND YEAR(Fecha) = YEAR(CURRENT_DATE()) 
+                        THEN KM 
+                        ELSE 0 
+                    END) AS distancia_actual,
+                    SUM(CASE 
+                        WHEN MONTH(Fecha) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) AND YEAR(Fecha) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) 
+                        THEN KM 
+                        ELSE 0 
+                    END) AS distancia_anterior,
+                    CASE 
+                        WHEN SUM(CASE 
+                            WHEN MONTH(Fecha) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) AND YEAR(Fecha) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) 
+                            THEN KM 
+                            ELSE 0 
+                        END) = 0 
+                        THEN NULL
+                        ELSE 
+                            ROUND((
+                                SUM(CASE 
+                                    WHEN MONTH(Fecha) = MONTH(CURRENT_DATE()) AND YEAR(Fecha) = YEAR(CURRENT_DATE()) 
+                                    THEN KM 
+                                    ELSE 0 
+                                END) - 
+                                SUM(CASE 
+                                    WHEN MONTH(Fecha) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) AND YEAR(Fecha) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) 
+                                    THEN KM 
+                                    ELSE 0 
+                                END)
+                            ) / 
+                            SUM(CASE 
+                                WHEN MONTH(Fecha) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) AND YEAR(Fecha) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) 
+                                THEN KM 
+                                ELSE 0 
+                            END) * 100, 2)
+                    END AS porcentaje_cambio
+                FROM registros;";
+                $result = $conexion->query($query);
+
+                if ($result) {
+                    $data = $result->fetch_assoc();
+                    $distancia_actual = $data['distancia_actual'] ?? 0;
+                    $distancia_anterior = $data['distancia_anterior'] ?? 0;
+                    $porcentaje_cambio = $data['porcentaje_cambio'] ?? 0;
+
+                    echo "<div class='stat-value'>{$distancia_actual} KM</div><div class='stat-label'>Total Distancia Este Mes</div>";
+                    echo "<div class='trend trend-" . ($porcentaje_cambio >= 0 ? "up" : "down") . "'>";
+                    echo "<i class='fas fa-arrow-" . ($porcentaje_cambio >= 0 ? "up" : "down") . "'></i>";
+                    echo abs($porcentaje_cambio) . "% vs ultimo mes</div>";
+                }
+
+                ?>
             </div>
 
-            <!-- Stats Overview -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">
-                        <?php
-                        $sql = "SELECT SUM(KM) as total_km FROM registros WHERE MONTH(Fecha) = MONTH(CURRENT_DATE())";
-                        $result = mysqli_query($conexion, $sql);
-                        $row = mysqli_fetch_assoc($result);
-                        echo number_format($row['total_km'] ?? 0, 1);
-                        ?> km
-                    </div>
-                    <div class="stat-label">Distance This Month</div>
-                    <div class="trend trend-up">
-                        <i class="fas fa-arrow-up"></i>
-                        12% vs last month
-                    </div>
-                </div>
+            <div class="stat-card">
+                <div class="stat-value">
+                    <?php
+                    // Consulta para obtener las actividades del mes actual y el mes anterior
+                    $sql = "
+            SELECT 
+                SUM(CASE WHEN MONTH(Fecha) = MONTH(CURRENT_DATE()) AND YEAR(Fecha) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS current_month,
+                SUM(CASE WHEN MONTH(Fecha) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) AND YEAR(Fecha) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) THEN 1 ELSE 0 END) AS last_month
+            FROM registros
+        ";
+                    $result = mysqli_query($conexion, $sql);
+                    $row = mysqli_fetch_assoc($result);
 
-                <div class="stat-card">
-                    <div class="stat-value">
-                        <?php
-                        $sql = "SELECT COUNT(*) as total_runs FROM registros WHERE MONTH(Fecha) = MONTH(CURRENT_DATE())";
-                        $result = mysqli_query($conexion, $sql);
-                        $row = mysqli_fetch_assoc($result);
-                        echo $row['total_runs'] ?? 0;
-                        ?>
-                    </div>
-                    <div class="stat-label">Total Activities</div>
-                    <div class="trend trend-up">
-                        <i class="fas fa-arrow-up"></i>
-                        8% vs last month
-                    </div>
-                </div>
+                    $total_current_month = $row['current_month'] ?? 0;
+                    $total_last_month = $row['last_month'] ?? 0;
 
-                <div class="stat-card">
-                    <div class="stat-value">
-                        <?php
-                        $sql = "SELECT AVG(KM) as avg_km FROM registros WHERE MONTH(Fecha) = MONTH(CURRENT_DATE())";
-                        $result = mysqli_query($conexion, $sql);
-                        $row = mysqli_fetch_assoc($result);
-                        echo number_format($row['avg_km'] ?? 0, 1);
-                        ?> km
-                    </div>
-                    <div class="stat-label">Average Distance</div>
-                    <div class="trend trend-down">
-                        <i class="fas fa-arrow-down"></i>
-                        3% vs last month
-                    </div>
+                    // Calcular el porcentaje de cambio
+                    $percentage_change = 0;
+                    if ($total_last_month > 0) {
+                        $percentage_change = (($total_current_month - $total_last_month) / $total_last_month) * 100;
+                    }
+                    ?>
+                    <?php echo $total_current_month; ?>
                 </div>
-
-                <div class="stat-card">
-                    <div class="stat-value">
-                        <?php
-                        $sql = "SELECT COUNT(*) as streak FROM registros 
-                               WHERE Estado = 'Completado' 
-                               AND Fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)";
-                        $result = mysqli_query($conexion, $sql);
-                        $row = mysqli_fetch_assoc($result);
-                        echo $row['streak'] ?? 0;
-                        ?>
-                    </div>
-                    <div class="stat-label">Current Streak</div>
-                    <div class="trend trend-up">
-                        <i class="fas fa-fire"></i>
-                        Personal Best
-                    </div>
+                <div class="stat-label">Total Corridas</div>
+                <div class="trend <?php echo $percentage_change >= 0 ? 'trend-up' : 'trend-down'; ?>">
+                    <i class="fas fa-arrow-<?php echo $percentage_change >= 0 ? 'up' : 'down'; ?>"></i>
+                    <?php echo number_format(abs($percentage_change), 2); ?>% vs ultimo mes
                 </div>
             </div>
 
-            <!-- Goals Progress -->
-            <div class="progress-card">
-                <div class="progress-title">
-                    <h5 class="mb-0">Monthly Goals Progress</h5>
-                    <span>18 days remaining</span>
+
+            <div class="stat-card">
+                <div class="stat-value">
+                    <?php
+                    // Consulta para obtener el promedio de distancia del mes actual y del mes anterior
+                    $sql = "
+            SELECT 
+                AVG(CASE WHEN MONTH(Fecha) = MONTH(CURRENT_DATE()) AND YEAR(Fecha) = YEAR(CURRENT_DATE()) THEN KM ELSE NULL END) AS avg_current_month,
+                AVG(CASE WHEN MONTH(Fecha) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) AND YEAR(Fecha) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) THEN KM ELSE NULL END) AS avg_last_month
+            FROM registros
+        ";
+                    $result = mysqli_query($conexion, $sql);
+                    $row = mysqli_fetch_assoc($result);
+
+                    $avg_current_month = $row['avg_current_month'] ?? 0;
+                    $avg_last_month = $row['avg_last_month'] ?? 0;
+
+                    // Calcular el porcentaje de cambio
+                    $percentage_change = 0;
+                    if ($avg_last_month > 0) {
+                        $percentage_change = (($avg_current_month - $avg_last_month) / $avg_last_month) * 100;
+                    }
+                    ?>
+                    <?php echo number_format($avg_current_month, 1); ?> km
                 </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>Distance Goal (150km)</span>
-                        <span>65%</span>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar bg-primary" style="width: 65%"></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>Activity Goal (20 runs)</span>
-                        <span>80%</span>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar bg-success" style="width: 80%"></div>
-                    </div>
+                <div class="stat-label">Promedio Distancia</div>
+                <div class="trend <?php echo $percentage_change >= 0 ? 'trend-up' : 'trend-down'; ?>">
+                    <i class="fas fa-arrow-<?php echo $percentage_change >= 0 ? 'up' : 'down'; ?>"></i>
+                    <?php echo number_format(abs($percentage_change), 2); ?>% vs ultimo mes
                 </div>
             </div>
 
-            <!-- Recent Activities -->
-            <div class="table-card">
-                <div class="d-flex justify-content-between align-items-center p-4">
-                    <h5 class="mb-0">Recent Activities</h5>
-                    <div class="d-flex gap-2">
-                        <input type="text" class="form-control" placeholder="Search activities..."
-                            style="width: 250px;" onkeyup="searchTable()">
-                        <select class="form-select" style="width: 150px;">
-                            <option>All Activities</option>
-                            <option>Completed</option>
-                            <option>In Progress</option>
-                        </select>
-                    </div>
+
+            <div class="stat-card">
+                <div class="stat-value">
+                    <?php
+                    // Consulta para contar las actividades completadas en el mes actual
+                    $sql = "
+            SELECT MAX(KM) as streak 
+            FROM registros 
+            WHERE Estado = 'Finalizada' 
+            AND MONTH(Fecha) = MONTH(CURRENT_DATE()) 
+            AND YEAR(Fecha) = YEAR(CURRENT_DATE())
+        ";
+                    $result = mysqli_query($conexion, $sql);
+                    $row = mysqli_fetch_assoc($result);
+                    echo number_format($row['streak'] ?? 0, 1); 
+                    ?> km
+
                 </div>
-                <table class="table" id="activitiesTable">
-                    <thead>
-                        <tr>
-                            <th>Runner</th>
-                            <th>Date</th>
-                            <th>Distance</th>
-                            <th>Time</th>
-                            <th>Pace</th>
-                            <th>Location</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $sql = "SELECT *, 
+                <div class="stat-label">Mayor Distancia Actual</div>
+                <div class="trend trend-up">
+                    <i class="fas fa-fire"></i>
+                    <?php
+                    // Consulta combinada para obtener el mejor registro con estado 'Completado' o 'Finalizada'
+                    $sql = "
+            SELECT MAX(KM) as best_record 
+            FROM registros 
+            WHERE Estado = 'Finalizada'
+        ";
+                    $result = mysqli_query($conexion, $sql);
+                    $row = mysqli_fetch_assoc($result);
+                    echo number_format($row['best_record'] ?? 0, 1);
+                    ?> km
+                    Mejor Récord Personal
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Goals Progress -->
+        <div class="progress-card">
+            <div class="progress-title">
+                <h5 class="mb-0">Monthly Goals Progress</h5>
+                <span>18 days remaining</span>
+            </div>
+            <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Distance Goal (150km)</span>
+                    <span>65%</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar bg-primary" style="width: 65%"></div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Activity Goal (20 runs)</span>
+                    <span>80%</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar bg-success" style="width: 80%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="table-card">
+            <div class="d-flex justify-content-between align-items-center p-4">
+                <h5 class="mb-0">Recent Activities</h5>
+                <div class="d-flex gap-2">
+                    <input type="text" class="form-control" placeholder="Search activities..."
+                        style="width: 250px;" onkeyup="searchTable()">
+                    <select class="form-select" style="width: 150px;">
+                        <option>All Activities</option>
+                        <option>Completed</option>
+                        <option>In Progress</option>
+                    </select>
+                </div>
+            </div>
+            <table class="table" id="activitiesTable">
+                <thead>
+                    <tr>
+                        <th>Runner</th>
+                        <th>Date</th>
+                        <th>Distance</th>
+                        <th>Time</th>
+                        <th>Pace</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $sql = "SELECT *, 
                                TIME_FORMAT(SEC_TO_TIME(
                                  TIME_TO_SEC(Tiempo) / KM
                                ), '%i:%s') as pace 
                                FROM registros 
                                ORDER BY Fecha DESC 
                                LIMIT 10";
-                        $result = mysqli_query($conexion, $sql);
+                    $result = mysqli_query($conexion, $sql);
 
-                        while ($row = mysqli_fetch_array($result)) {
-                            $statusClass = $row['Estado'] == 'Completado' ? 'bg-success' : 'bg-warning';
-                        ?>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="avatar">
-                                            <?php echo substr($row['Usuario'], 0, 1); ?>
-                                        </div>
-                                        <div>
-                                            <div class="fw-semibold"><?php echo $row['Usuario']; ?></div>
-                                            <small class="text-muted">Runner</small>
-                                        </div>
+                    while ($row = mysqli_fetch_array($result)) {
+                        $statusClass = $row['Estado'] == 'Completado' ? 'bg-success' : 'bg-warning';
+                    ?>
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar">
+                                        <?php echo substr($row['Usuario'], 0, 1); ?>
                                     </div>
-                                </td>
-                                <td>
-                                    <div><?php echo date('M d, Y', strtotime($row['Fecha'])); ?></div>
-                                    <small class="text-muted"><?php echo date('h:i A', strtotime($row['Fecha'])); ?></small>
-                                </td>
-                                <td>
-                                    <div class="fw-semibold"><?php echo $row['KM']; ?> km</div>
-                                </td>
-                                <td><?php echo $row['Tiempo']; ?></td>
-                                <td><?php echo $row['pace']; ?> /km</td>
-                                <td>
-                                    <i class="fas fa-map-marker-alt text-primary me-1"></i>
-                                    <?php echo $row['Ubicacion']; ?>
-                                </td>
-                                <td>
-                                    <span class="badge <?php echo $statusClass; ?>">
-                                        <?php echo $row['Estado']; ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <button class="btn btn-sm btn-light" data-toggle="modal"
-                                            data-target="#editChildresn<?php echo $row['ID']; ?>">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-light text-danger" data-toggle="modal"
-                                            data-target="#editChildresn1<?php echo $row['ID']; ?>">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                    <div>
+                                        <div class="fw-semibold"><?php echo $row['Usuario']; ?></div>
+                                        <small class="text-muted">Runner</small>
                                     </div>
-                                </td>
-                            </tr>
-                            <?php include('ModalEditar.php'); ?>
-                            <?php include('ModalDelete.php'); ?>
-                        <?php } ?>
-                    </tbody>
-                </table>
-            </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div><?php echo date('M d, Y', strtotime($row['Fecha'])); ?></div>
+                                <small class="text-muted"><?php echo date('h:i A', strtotime($row['Fecha'])); ?></small>
+                            </td>
+                            <td>
+                                <div class="fw-semibold"><?php echo $row['KM']; ?> km</div>
+                            </td>
+                            <td><?php echo $row['Tiempo']; ?></td>
+                            <td><?php echo $row['pace']; ?> /km</td>
+                            <td>
+                                <i class="fas fa-map-marker-alt text-primary me-1"></i>
+                                <?php echo $row['Ubicacion']; ?>
+                            </td>
+                            <td>
+                                <span class="badge <?php echo $statusClass; ?>">
+                                    <?php echo $row['Estado']; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-light" data-toggle="modal"
+                                        data-target="#editChildresn<?php echo $row['ID']; ?>">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-light text-danger" data-toggle="modal"
+                                        data-target="#editChildresn1<?php echo $row['ID']; ?>">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php include('ModalEditar.php'); ?>
+                        <?php include('ModalDelete.php'); ?>
+                    <?php } ?>
+                </tbody>
+            </table>
+        </div>
 
-            <!-- Charts Grid -->
-            <div class="chart-grid mt-4">
-                <div class="chart-card">
-                    <h5>Weekly Distance Trend</h5>
-                    <canvas id="distanceChart"></canvas>
-                </div>
-                <div class="chart-card">
-                    <h5>Pace Analysis</h5>
-                    <canvas id="paceChart"></canvas>
-                </div>
+        <!-- Charts Grid -->
+        <div class="chart-grid mt-4">
+            <div class="chart-card">
+                <h5>Weekly Distance Trend</h5>
+                <canvas id="distanceChart"></canvas>
             </div>
+            <div class="chart-card">
+                <h5>Pace Analysis</h5>
+                <canvas id="paceChart"></canvas>
+            </div>
+        </div>
 
-            <!-- Training Load -->
-            <div class="progress-card">
-                <h5>Training Load</h5>
-                <div class="d-flex gap-4 mt-3">
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Weekly Load</span>
-                            <span>Optimal Zone</span>
-                        </div>
-                        <div class="progress" style="height: 1rem;">
-                            <div class="progress-bar bg-success" style="width: 75%"></div>
-                        </div>
+        <!-- Training Load -->
+        <div class="progress-card">
+            <h5>Training Load</h5>
+            <div class="d-flex gap-4 mt-3">
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Weekly Load</span>
+                        <span>Optimal Zone</span>
                     </div>
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Recovery Status</span>
-                            <span>85% Ready</span>
-                        </div>
-                        <div class="progress" style="height: 1rem;">
-                            <div class="progress-bar bg-info" style="width: 85%"></div>
-                        </div>
+                    <div class="progress" style="height: 1rem;">
+                        <div class="progress-bar bg-success" style="width: 75%"></div>
                     </div>
                 </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Recovery Status</span>
+                        <span>85% Ready</span>
+                    </div>
+                    <div class="progress" style="height: 1rem;">
+                        <div class="progress-bar bg-info" style="width: 85%"></div>
+                    </div>
+                </div>
             </div>
-        </main>
+        </div>
+    </main>
     </div>
-
-    <?php include('ModalCrear.php'); ?>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.9.2/umd/popper.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         // Distance Chart
