@@ -53,19 +53,24 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label fw-semibold">Fecha</label>
-            <input type="date" name="fecha" class="form-control shadow-sm"
-              value="<?php echo date('Y-m-d', strtotime($row['Fecha'])); ?>" required>
-            <div class="invalid-feedback">Seleccione una fecha</div>
+            <label for="fecha" class="form-label fw-semibold">Fecha</label>
+            <input
+              type="datetime-local"
+              name="fecha"
+              id="fecha"
+              class="form-control shadow-sm"
+              value="<?php echo date('Y-m-d\TH:i', strtotime($row['Fecha'])); ?>"
+              required>
+            <div class="invalid-feedback">Seleccione una fecha válida</div>
           </div>
 
 
           <div class="mb-3">
-            <label class="form-label fw-semibold">Estado</label>
-            <select name="estado" class="form-select shadow-sm" required>
+            <label for="estado" class="form-label fw-semibold">Estado</label>
+            <select name="estado" id="estado" class="form-select shadow-sm" required>
               <option value="<?php echo $row['Estado']; ?>"><?php echo $row['Estado']; ?></option>
               <?php
-              $query = $conexion->query("SELECT * FROM `estado_corridda`");
+              $query = $conexion->query("SELECT * FROM `estado_corridda` WHERE `Estado` != '" . $row['Estado'] . "'");
               while ($valores = mysqli_fetch_array($query)) {
                 echo '<option value="' . $valores['Estado'] . '">' . $valores['Estado'] . '</option>';
               }

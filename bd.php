@@ -59,3 +59,4 @@ if (!$result) {
     die("La consulta falló: " . mysqli_error($conexion));
 }
 
+date_default_timezone_set('America/Santiago'); // Configura la zona horaria de Santiago de Chile

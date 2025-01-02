@@ -1,47 +1,43 @@
-
 <?php
+// Incluir archivo de conexión a la base de datos
 include 'bd.php';
-$idRegistros  = $_POST['id'];
-$usuario      = $_POST['usuario'];
-$km           = $_POST['km'];
-$tiempo       = $_POST['tiempo'];
-$ubi          = $_POST['ubi'];
-$fecha        = $_POST['fecha'];
-$estado       = $_POST['estado'];
 
-$update = ("UPDATE
-registros 
-SET 
-Usuario ='" . $usuario . "',
-KM ='" . $km . "',
-Tiempo ='" . $tiempo . "',
-Ubicacion ='" . $ubi . "',
-Fecha ='" . $fecha . "',
-Estado ='" . $estado . "'
-WHERE ID='" . $idRegistros . "';
-");
+// Validar y recibir los datos del formulario
+$idRegistros = isset($_POST['id']) ? intval($_POST['id']) : null;
+$usuario     = isset($_POST['usuario']) ? trim($_POST['usuario']) : null;
+$km          = isset($_POST['kilometros']) ? floatval($_POST['kilometros']) : null;
+$tiempo      = isset($_POST['tiempo']) ? trim($_POST['tiempo']) : null;
+$ubi         = isset($_POST['ubi']) ? trim($_POST['ubi']) : null;
+$fecha       = isset($_POST['fecha']) ? trim($_POST['fecha']) : null;
+$estado      = isset($_POST['estado']) ? trim($_POST['estado']) : null;
 
-$result_update = mysqli_query($conexion, $update);
+// Verificar que todos los datos requeridos estén presentes
+if (!$idRegistros || !$usuario || !$km || !$tiempo || !$ubi || !$fecha || !$estado) {
+    die("Error: Todos los campos son obligatorios.");
+}
 
-echo $update;
+try {
+    // Usar consultas preparadas para prevenir inyecciones SQL
+    $query = "UPDATE registros 
+              SET Usuario = ?, KM = ?, Tiempo = ?, Ubicacion = ?, Fecha = ?, Estado = ? 
+              WHERE ID = ?";
+    $stmt = $conexion->prepare($query);
+    $stmt->bind_param('sdssssi', $usuario, $km, $tiempo, $ubi, $fecha, $estado, $idRegistros);
 
-/*
-$local = "01:22:00";
+    // Ejecutar la consulta
+    if ($stmt->execute()) {
+        // Redirigir a la página principal después de la actualización
+        header('Location: index.php');
+        exit;
+    } else {
+        throw new Exception("Error al actualizar el registro: " . $stmt->error);
+    }
+} catch (Exception $e) {
+    // Manejo de errores
+    echo "Error: " . $e->getMessage();
+}
 
-$NuevaFecha = strtotime ( '-1 hour' , strtotime ($tiempo) ) ; 
-$NuevaFecha = date ( 'H:i:s' , $NuevaFecha); 
-
-echo "<br>";
-echo $NuevaFecha;
-echo "<br>";
-echo $tiempo;
-echo "<br>";
-echo $local;
-*/
-
-echo "<script type='text/javascript'>
-        window.location='index.php';
-    </script>";
-    
-
+// Cerrar la conexión
+$stmt->close();
+$conexion->close();
 ?>

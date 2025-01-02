@@ -1,5 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
+<?php require 'bd.php';
+
+$fecha_actual = date('Y-m-d H:i:s');
+
+
+// Función para clasificar los valores de pace en rangos automáticamente
+function clasificarPace($pace_values)
+{
+    // Calcular el valor mínimo y máximo de pace
+    $pace_min = min($pace_values);
+    $pace_max = max($pace_values);
+
+    // Convertir pace_min y pace_max a minutos (extraemos solo los minutos como números)
+    $pace_min_minutes = (int)explode(":", $pace_min)[0];
+    $pace_max_minutes = (int)explode(":", $pace_max)[0];
+
+    // Definir el tamaño del paso para los rangos (aquí lo dividimos en 5 rangos)
+    $range_step = ($pace_max_minutes - $pace_min_minutes) / 5;
+
+    // Inicializar el array de rangos
+    $pace_ranges = [
+        '<' . ($pace_min_minutes + $range_step) => 0,
+        ($pace_min_minutes + $range_step) . '-' . ($pace_min_minutes + 2 * $range_step) => 0,
+        ($pace_min_minutes + 2 * $range_step) . '-' . ($pace_min_minutes + 3 * $range_step) => 0,
+        ($pace_min_minutes + 3 * $range_step) . '-' . ($pace_min_minutes + 4 * $range_step) => 0,
+        '>' . ($pace_min_minutes + 4 * $range_step) => 0
+    ];
+
+    // Clasificar los valores de pace en los rangos
+    foreach ($pace_values as $pace) {
+        $pace_minutes = (int)explode(":", $pace)[0];
+
+        if ($pace_minutes < $pace_min_minutes + $range_step) {
+            $pace_ranges['<' . ($pace_min_minutes + $range_step)]++;
+        } elseif ($pace_minutes >= $pace_min_minutes + $range_step && $pace_minutes < $pace_min_minutes + 2 * $range_step) {
+            $pace_ranges[($pace_min_minutes + $range_step) . '-' . ($pace_min_minutes + 2 * $range_step)]++;
+        } elseif ($pace_minutes >= $pace_min_minutes + 2 * $range_step && $pace_minutes < $pace_min_minutes + 3 * $range_step) {
+            $pace_ranges[($pace_min_minutes + 2 * $range_step) . '-' . ($pace_min_minutes + 3 * $range_step)]++;
+        } elseif ($pace_minutes >= $pace_min_minutes + 3 * $range_step && $pace_minutes < $pace_min_minutes + 4 * $range_step) {
+            $pace_ranges[($pace_min_minutes + 3 * $range_step) . '-' . ($pace_min_minutes + 4 * $range_step)]++;
+        } else {
+            $pace_ranges['>' . ($pace_min_minutes + 4 * $range_step)]++;
+        }
+    }
+
+    // Retornar los rangos y las cantidades
+    return $pace_ranges;
+}
+
+// Ejecutar la consulta SQL para obtener la última fecha y la diferencia de tiempo
+$query = "SELECT 
+            MAX(Fecha) AS ultima_fecha,
+            TIMEDIFF(NOW(), MAX(Fecha)) AS tiempo_sin_registro
+          FROM 
+            registros";
+
+$result = mysqli_query($conexion, $query);
+
+// Verificar si la consulta fue exitosa
+if ($result) {
+    // Obtener los resultados
+    $row = mysqli_fetch_assoc($result);
+    $ultima_fecha = $row['ultima_fecha'];
+    $tiempo_sin_registro = $row['tiempo_sin_registro'];
+}
+
+function calcularDiferencia($ultima_fecha, $fecha_actual)
+{
+    // Convertimos las fechas a objetos DateTime
+    $fecha_ultimo = new DateTime($ultima_fecha);
+    $fecha_actual = new DateTime($fecha_actual);
+
+    // Calculamos la diferencia entre las dos fechas
+    $intervalo = $fecha_ultimo->diff($fecha_actual);
+
+    // Obtenemos los días, horas y minutos
+    $dias = $intervalo->days;
+    $horas = $intervalo->h;
+    $minutos = $intervalo->i;
+
+    // Si las horas o los minutos son cero, los mostramos en la salida
+    return "$dias Días, $horas Horas, $minutos Minutos";
+}
+
+
+
+?>
+
 
 <head>
     <meta charset="UTF-8">
@@ -188,11 +276,73 @@
             font-weight: 500;
             font-size: 0.75rem;
         }
+
+
+
+        /* Estilos del encabezado */
+        .stat-header {
+            margin-bottom: 18px;
+            text-align: center;
+            position: relative;
+        }
+
+        /* Fuente del título */
+        .stat-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Estilos para el valor */
+        .stat-time {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4A90E2;
+            text-align: center;
+        }
+
+        /* Icono de Información */
+        .info-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: transparent;
+            border: none;
+            font-size: 24px;
+            color: #4A90E2;
+            cursor: pointer;
+        }
+
+        /* Estilos para el modal */
+        .modal-content {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .modal-header {
+            border-bottom: 2px solid #ddd;
+        }
+
+        .modal-footer {
+            border-top: 2px solid #ddd;
+            text-align: right;
+        }
+
+        /* Estilo del botón de cerrar */
+        .btn-close {
+            background: none;
+            border: none;
+            color: #4A90E2;
+            font-size: 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
-    <?php require 'bd.php'; ?>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -209,6 +359,59 @@
 
         <!-- Stats Overview -->
         <div class="stats-grid">
+            <div class="stat-card">
+                <?php
+
+                // Consulta combinada para obtener el mejor registro con estado 'Completado' o 'Finalizada'
+                $query = "
+          SELECT SUM(KM) as best_record 
+          FROM registros 
+          WHERE Estado = 'Finalizada'
+      ";
+                $result = $conexion->query($query);
+
+                if ($result) {
+                    $data = $result->fetch_assoc();
+                    $distancia_actual = $data['best_record'] ?? 0;
+
+                    echo "<div class='stat-value'>" . number_format($distancia_actual ?? 0, 1) . " KM</div><div class='stat-label'>Total Distancia Recorrida</div>";
+                }
+
+                ?>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-value">
+                    <?php
+                    // Consulta para obtener las actividades del mes actual y el mes anterior
+                    $sql = "
+            SELECT 
+                SUM(CASE WHEN MONTH(Fecha) = MONTH(CURRENT_DATE()) AND YEAR(Fecha) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS current_month,
+                SUM(CASE WHEN MONTH(Fecha) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) AND YEAR(Fecha) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) THEN 1 ELSE 0 END) AS last_month
+            FROM registros
+        ";
+                    $result = mysqli_query($conexion, $sql);
+                    $row = mysqli_fetch_assoc($result);
+
+                    $total_current_month = $row['current_month'] ?? 0;
+                    $total_last_month = $row['last_month'] ?? 0;
+
+                    // Calcular el porcentaje de cambio
+                    $percentage_change = 0;
+                    if ($total_last_month > 0) {
+                        $percentage_change = (($total_current_month - $total_last_month) / $total_last_month) * 100;
+                    }
+                    ?>
+                    <?php echo $total_current_month; ?>
+                </div>
+                <div class="stat-label">Total Corridas Este Mes</div>
+                <div class="trend <?php echo $percentage_change >= 0 ? 'trend-up' : 'trend-down'; ?>">
+                    <i class="fas fa-arrow-<?php echo $percentage_change >= 0 ? 'up' : 'down'; ?>"></i>
+                    <?php echo number_format(abs($percentage_change), 2); ?>% vs ultimo mes
+                </div>
+            </div>
+
+
             <div class="stat-card">
                 <?php
                 $query = "SELECT 
@@ -269,70 +472,6 @@
             <div class="stat-card">
                 <div class="stat-value">
                     <?php
-                    // Consulta para obtener las actividades del mes actual y el mes anterior
-                    $sql = "
-            SELECT 
-                SUM(CASE WHEN MONTH(Fecha) = MONTH(CURRENT_DATE()) AND YEAR(Fecha) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS current_month,
-                SUM(CASE WHEN MONTH(Fecha) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) AND YEAR(Fecha) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) THEN 1 ELSE 0 END) AS last_month
-            FROM registros
-        ";
-                    $result = mysqli_query($conexion, $sql);
-                    $row = mysqli_fetch_assoc($result);
-
-                    $total_current_month = $row['current_month'] ?? 0;
-                    $total_last_month = $row['last_month'] ?? 0;
-
-                    // Calcular el porcentaje de cambio
-                    $percentage_change = 0;
-                    if ($total_last_month > 0) {
-                        $percentage_change = (($total_current_month - $total_last_month) / $total_last_month) * 100;
-                    }
-                    ?>
-                    <?php echo $total_current_month; ?>
-                </div>
-                <div class="stat-label">Total Corridas</div>
-                <div class="trend <?php echo $percentage_change >= 0 ? 'trend-up' : 'trend-down'; ?>">
-                    <i class="fas fa-arrow-<?php echo $percentage_change >= 0 ? 'up' : 'down'; ?>"></i>
-                    <?php echo number_format(abs($percentage_change), 2); ?>% vs ultimo mes
-                </div>
-            </div>
-
-
-            <div class="stat-card">
-                <div class="stat-value">
-                    <?php
-                    // Consulta para obtener el promedio de distancia del mes actual y del mes anterior
-                    $sql = "
-            SELECT 
-                AVG(CASE WHEN MONTH(Fecha) = MONTH(CURRENT_DATE()) AND YEAR(Fecha) = YEAR(CURRENT_DATE()) THEN KM ELSE NULL END) AS avg_current_month,
-                AVG(CASE WHEN MONTH(Fecha) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) AND YEAR(Fecha) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) THEN KM ELSE NULL END) AS avg_last_month
-            FROM registros
-        ";
-                    $result = mysqli_query($conexion, $sql);
-                    $row = mysqli_fetch_assoc($result);
-
-                    $avg_current_month = $row['avg_current_month'] ?? 0;
-                    $avg_last_month = $row['avg_last_month'] ?? 0;
-
-                    // Calcular el porcentaje de cambio
-                    $percentage_change = 0;
-                    if ($avg_last_month > 0) {
-                        $percentage_change = (($avg_current_month - $avg_last_month) / $avg_last_month) * 100;
-                    }
-                    ?>
-                    <?php echo number_format($avg_current_month, 1); ?> km
-                </div>
-                <div class="stat-label">Promedio Distancia</div>
-                <div class="trend <?php echo $percentage_change >= 0 ? 'trend-up' : 'trend-down'; ?>">
-                    <i class="fas fa-arrow-<?php echo $percentage_change >= 0 ? 'up' : 'down'; ?>"></i>
-                    <?php echo number_format(abs($percentage_change), 2); ?>% vs ultimo mes
-                </div>
-            </div>
-
-
-            <div class="stat-card">
-                <div class="stat-value">
-                    <?php
                     // Consulta para contar las actividades completadas en el mes actual
                     $sql = "
             SELECT MAX(KM) as streak 
@@ -347,7 +486,7 @@
                     ?> km
 
                 </div>
-                <div class="stat-label">Mayor Distancia Actual</div>
+                <div class="stat-label">Mayor Distancia Este Mes</div>
                 <div class="trend trend-up">
                     <i class="fas fa-fire"></i>
                     <?php
@@ -365,34 +504,43 @@
                 </div>
 
             </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h3 class="stat-title">Tiempo Sin Correr</h3>
+                    <!-- Icono de Información -->
+                    <button class="info-icon" data-bs-toggle="modal" data-bs-target="#infoModal">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </div>
+                <div class="stat-body">
+                    <div class="stat-time">
+                        <?php echo calcularDiferencia($ultima_fecha, $fecha_actual); ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Información -->
+            <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="infoModalLabel">Información sobre el Tiempo Sin Correr</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            El "Tiempo Sin Correr" se calcula como la diferencia entre la última vez registrada que corriste y la fecha actual. Este valor te ayuda a medir cuánto tiempo ha pasado sin actividad.
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
 
         </div>
 
-        <!-- Goals Progress -->
-        <div class="progress-card">
-            <div class="progress-title">
-                <h5 class="mb-0">Monthly Goals Progress</h5>
-                <span>18 days remaining</span>
-            </div>
-            <div class="mb-3">
-                <div class="d-flex justify-content-between mb-1">
-                    <span>Distance Goal (150km)</span>
-                    <span>65%</span>
-                </div>
-                <div class="progress">
-                    <div class="progress-bar bg-primary" style="width: 65%"></div>
-                </div>
-            </div>
-            <div class="mb-3">
-                <div class="d-flex justify-content-between mb-1">
-                    <span>Activity Goal (20 runs)</span>
-                    <span>80%</span>
-                </div>
-                <div class="progress">
-                    <div class="progress-bar bg-success" style="width: 80%"></div>
-                </div>
-            </div>
-        </div>
 
         <!-- Recent Activities -->
         <div class="table-card">
@@ -437,6 +585,7 @@
 
                     while ($row = mysqli_fetch_array($result)) {
                         $statusClass = $row['Estado'] == 'Finalizada' ? 'bg-success' : 'bg-warning';
+                        $pace[] = $row['pace'];
                     ?>
                         <tr>
                             <td>
@@ -446,7 +595,7 @@
                                     </div>
                                     <div>
                                         <div class="fw-semibold"><?php echo $row['Usuario']; ?></div>
-              
+
                                     </div>
                                 </div>
                             </td>
@@ -459,7 +608,7 @@
                                 <div class="fw-semibold"><?php echo $row['KM']; ?> km</div>
                             </td>
                             <td><?php echo $row['Tiempo']; ?></td>
-                            <td><?php echo $row['pace']?? 0; ?> min/km</td>
+                            <td><?php echo $row['pace'] ?? 0; ?> min/km</td>
                             <td>
                                 <i class="fas fa-map-marker-alt text-primary me-1"></i>
                                 <?php echo $row['Ubicacion']; ?>
@@ -492,37 +641,12 @@
         <!-- Charts Grid -->
         <div class="chart-grid mt-4">
             <div class="chart-card">
-                <h5>Weekly Distance Trend</h5>
+                <h5>Distancia Recorrida por Fecha</h5>
                 <canvas id="distanceChart"></canvas>
             </div>
             <div class="chart-card">
-                <h5>Pace Analysis</h5>
+                <h5>Ritmo Promedio por Intervalo de Tiempo</h5>
                 <canvas id="paceChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Training Load -->
-        <div class="progress-card">
-            <h5>Training Load</h5>
-            <div class="d-flex gap-4 mt-3">
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>Weekly Load</span>
-                        <span>Optimal Zone</span>
-                    </div>
-                    <div class="progress" style="height: 1rem;">
-                        <div class="progress-bar bg-success" style="width: 75%"></div>
-                    </div>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>Recovery Status</span>
-                        <span>85% Ready</span>
-                    </div>
-                    <div class="progress" style="height: 1rem;">
-                        <div class="progress-bar bg-info" style="width: 85%"></div>
-                    </div>
-                </div>
             </div>
         </div>
     </main>
@@ -534,16 +658,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
+    <?php
+
+    // Consulta SQL para obtener las fechas y las distancias
+    $sql_distancia = "SELECT Fecha, KM FROM `registros`ORDER by Fecha DESC limit 5"; // Ajusta la tabla y las columnas
+    $result_distancia = $conexion->query($sql_distancia);
+
+    // Inicializar los arrays
+    $labels = [];
+    $data = [];
+
+    if ($result_distancia->num_rows > 0) {
+        // Llenar los arrays con los datos de la consulta
+        while ($row = $result_distancia->fetch_assoc()) {
+            $labels[] = $row['Fecha']; // Usar la fecha formateada como etiqueta
+            $data[] = $row['KM'];  // Distancia correspondiente
+        }
+    }
+    // Llamar a la función para clasificar los pace en rangos
+    $pace_ranges = clasificarPace($pace);
+
+    $labels_pace = array_keys($pace_ranges);
+    $data_pace = array_values($pace_ranges);
+
+    ?>
+
     <script>
+        // Pasar los datos de PHP a JavaScript
+        const labels = <?php echo json_encode($labels); ?>; // Las fechas obtenidas de la consulta
+        const data = <?php echo json_encode($data); ?>; // Las distancias obtenidas de la consulta
+        const paceLabels = <?php echo json_encode($labels_pace); ?>;
+        const paceData = <?php echo json_encode($data_pace); ?>;
+
         // Distance Chart
         const distanceCtx = document.getElementById('distanceChart').getContext('2d');
         new Chart(distanceCtx, {
             type: 'line',
             data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                labels: labels, // Las fechas como etiquetas
                 datasets: [{
-                    label: 'Distance (km)',
-                    data: [5.2, 7.1, 0, 8.3, 6.4, 12.5, 4.8],
+                    label: 'Distancia (km)',
+                    data: data, // Las distancias correspondientes
                     borderColor: '#2563EB',
                     tension: 0.4
                 }]
@@ -562,16 +717,15 @@
                 }
             }
         });
-
         // Pace Chart
         const paceCtx = document.getElementById('paceChart').getContext('2d');
         new Chart(paceCtx, {
             type: 'bar',
             data: {
-                labels: ['<5:00', '5:00-5:30', '5:31-6:00', '6:01-6:30', '>6:30'],
+                labels: paceLabels,
                 datasets: [{
                     label: 'Number of Runs',
-                    data: [2, 5, 8, 4, 3],
+                    data: paceData,
                     backgroundColor: '#6366F1'
                 }]
             },
@@ -621,6 +775,7 @@
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     </script>
+
 </body>
 
 </html>

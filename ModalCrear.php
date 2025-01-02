@@ -49,13 +49,13 @@
           <div class="mb-3">
             <label for="fecha" class="form-label fw-semibold">Fecha</label>
             <input
-              type="date"
+              type="datetime-local"
               class="form-control shadow-sm"
               id="fecha"
               name="fecha"
-              min="<?php echo $año; ?>-01-01"
-              max="<?php echo $año; ?>-12-31"
-              value="<?php echo date('Y-m-d'); ?>"
+              min="<?php echo $año; ?>-01-01T00:00"
+              max="<?php echo $año; ?>-12-31T23:59"
+              value="<?php echo date('Y-m-d\TH:i'); ?>"
               required>
             <div class="invalid-feedback">Por favor seleccione una fecha válida</div>
           </div>
