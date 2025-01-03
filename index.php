@@ -78,13 +78,11 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
     // Obtenemos los días, horas y minutos
     $dias = $intervalo->days;
     $horas = $intervalo->h;
-    $minutos = $intervalo->i;
-
     // Si las horas o los minutos son cero, los mostramos en la salida
-    return "$dias Días, $horas Horas, $minutos Minutos";
+    return "{$dias}d {$horas}h";
 }
 
-
+$tiempo_sin_correr = calcularDiferencia($ultima_fecha, $fecha_actual);
 
 ?>
 
@@ -95,7 +93,7 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
     <title>Advanced Running Analytics</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
 
     <style>
         :root {
@@ -107,6 +105,13 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
             --background: #F8FAFC;
             --card-bg: #FFFFFF;
             --text: #1E293B;
+            --primary-color: #4F46E5;
+            --secondary-color: #10B981;
+            --danger-color: #EF4444;
+            --background-color: #F3F4F6;
+            --card-background: #FFFFFF;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
         }
 
         body {
@@ -172,10 +177,44 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
         }
 
         .stat-card {
-            background: var(--card-bg);
+            background: var(--card-background);
             border-radius: 1rem;
             padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(79, 70, 229, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon i {
+            font-size: 1.5rem;
+            color: var(--primary-color);
         }
 
         .stat-value {
@@ -186,8 +225,9 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
         }
 
         .stat-label {
-            color: #64748B;
             font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
         }
 
         .trend {
@@ -195,15 +235,29 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
             align-items: center;
             gap: 0.5rem;
             font-size: 0.875rem;
-            margin-top: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            width: fit-content;
         }
 
         .trend-up {
-            color: var(--success);
+            color: var(--secondary-color);
         }
 
         .trend-down {
-            color: var(--danger);
+            color: var(--danger-color);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .stat-card.highlight {
+            background: linear-gradient(135deg, var(--primary-color), #6366F1);
+            color: white;
+        }
+
+        .stat-card.highlight .stat-value,
+        .stat-card.highlight .stat-label {
+            color: white;
         }
 
         .chart-grid {
@@ -277,32 +331,6 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
             font-size: 0.75rem;
         }
 
-
-
-        /* Estilos del encabezado */
-        .stat-header {
-            margin-bottom: 18px;
-            text-align: center;
-            position: relative;
-        }
-
-        /* Fuente del título */
-        .stat-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Estilos para el valor */
-        .stat-time {
-            font-size: 24px;
-            font-weight: bold;
-            color: #4A90E2;
-            text-align: center;
-        }
-
         /* Icono de Información */
         .info-icon {
             position: absolute;
@@ -339,6 +367,102 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
             font-size: 20px;
             cursor: pointer;
         }
+
+        .time-display {
+            background: #f8f9fa;
+            border-left: 4px solid #4CAF50;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .time-icon {
+            color: #4CAF50;
+            margin-right: 0.5rem;
+        }
+
+        .input-container {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .km-input {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 0.8rem;
+            padding-left: 2.5rem;
+            font-size: 1.1rem;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .km-input:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+        }
+
+        .km-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+
+        #evaluarBtn {
+            background-color: #4CAF50;
+            border: none;
+            padding: 0.8rem;
+            width: 100%;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        #evaluarBtn:hover {
+            background-color: #45a049;
+            transform: translateY(-1px);
+        }
+
+        .resultado {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .resultado.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .resultado.recomendable {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .resultado.no-recomendable {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        .resultado.peligroso {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
     </style>
 </head>
 
@@ -360,6 +484,9 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
         <!-- Stats Overview -->
         <div class="stats-grid">
             <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-road"></i>
+                </div>
                 <?php
 
                 // Consulta combinada para obtener el mejor registro con estado 'Completado' o 'Finalizada'
@@ -381,6 +508,9 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
             </div>
 
             <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-running"></i>
+                </div>
                 <div class="stat-value">
                     <?php
                     // Consulta para obtener las actividades del mes actual y el mes anterior
@@ -413,6 +543,9 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
 
 
             <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
                 <?php
                 $query = "SELECT 
                     SUM(CASE 
@@ -470,6 +603,9 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
             </div>
 
             <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
                 <div class="stat-value">
                     <?php
                     // Consulta para contar las actividades completadas en el mes actual
@@ -504,38 +640,143 @@ function calcularDiferencia($ultima_fecha, $fecha_actual)
                 </div>
 
             </div>
+
             <div class="stat-card">
-                <div class="stat-header">
-                    <h3 class="stat-title">Tiempo Sin Correr</h3>
-                    <!-- Icono de Información -->
-                    <button class="info-icon" data-bs-toggle="modal" data-bs-target="#infoModal">
-                        <i class="fas fa-info-circle"></i>
-                    </button>
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
                 </div>
-                <div class="stat-body">
-                    <div class="stat-time">
-                        <?php echo calcularDiferencia($ultima_fecha, $fecha_actual); ?>
+                <div class="stat-value">
+                    <?php echo $tiempo_sin_correr ?>
+
+
+                </div>
+                <div class="stat-label">Tiempo Sin Correr</div>
+                <!-- Icono de Información -->
+                <button class="info-icon" data-bs-toggle="modal" data-bs-target="#infoModal">
+                    <i class="fas fa-lightbulb"></i>
+                </button>
+
+            </div>
+
+            <!-- Modal de Recomendación de Kilómetros -->
+            <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="infoModalLabel">
+                                <i class="fas fa-running me-2"></i>
+                                Recomendación de Kilómetros
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="time-display">
+                                <i class="fas fa-clock time-icon"></i>
+                                Tiempo Sin Correr: <span id="tiempoSinCorrer"></span>
+                            </div>
+
+                            <div class="input-container">
+                                <i class="fas fa-route km-icon"></i>
+                                <input
+                                    type="number"
+                                    id="kilometros_modal"
+                                    class="km-input"
+                                    min="1"
+                                    placeholder="¿Cuántos kilómetros planeas correr?"
+                                    aria-label="Kilómetros a correr">
+                                <div class="error-message">Por favor, ingresa una distancia válida</div>
+                            </div>
+
+                            <button id="evaluarBtn" class="btn btn-primary">
+                                <i class="fas fa-calculator me-2"></i>
+                                Evaluar Recomendación
+                            </button>
+
+                            <div id="resultado" class="resultado"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Modal de Información -->
-            <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="infoModalLabel">Información sobre el Tiempo Sin Correr</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            El "Tiempo Sin Correr" se calcula como la diferencia entre la última vez registrada que corriste y la fecha actual. Este valor te ayuda a medir cuánto tiempo ha pasado sin actividad.
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const tiempoSinCorrer = "<?php echo $tiempo_sin_correr; ?>";
+                    document.getElementById("tiempoSinCorrer").innerText = tiempoSinCorrer;
+
+                    const [diasSinCorrer, horasSinCorrer] = tiempoSinCorrer.split(' ')
+                        .map(part => parseInt(part.replace(/[a-z]/gi, '')));
+
+                    const kilometrosInput = document.getElementById("kilometros_modal");
+                    const evaluarBtn = document.getElementById("evaluarBtn");
+                    const resultadoDiv = document.getElementById("resultado");
+                    const errorMessage = document.querySelector(".error-message");
+
+                    function validateInput() {
+                        const value = kilometrosInput.value.trim();
+                        const isValid = value !== "" && !isNaN(value) && parseFloat(value) > 0;
+
+                        if (!isValid) {
+                            errorMessage.style.display = "block";
+                            kilometrosInput.classList.add("is-invalid");
+                        } else {
+                            errorMessage.style.display = "none";
+                            kilometrosInput.classList.remove("is-invalid");
+                        }
+
+                        return isValid;
+                    }
+
+                    kilometrosInput.addEventListener("input", validateInput);
+
+                    evaluarBtn.addEventListener("click", function() {
+                        if (!validateInput()) return;
+
+                        const kilometros = parseFloat(kilometrosInput.value);
+                        const recomendacion = calcularRecomendacion(diasSinCorrer, kilometros);
+
+                        // Determinar el tipo de resultado
+                        let resultadoClass = "recomendable";
+                        if (recomendacion.startsWith("No recomendable")) {
+                            resultadoClass = "no-recomendable";
+                        } else if (recomendacion.startsWith("Peligroso")) {
+                            resultadoClass = "peligroso";
+                        }
+
+                        // Actualizar clases y contenido
+                        resultadoDiv.className = `resultado ${resultadoClass}`;
+                        resultadoDiv.innerHTML = `
+                <i class="fas fa-${resultadoClass === 'recomendable' ? 'check-circle' : 
+                                   resultadoClass === 'no-recomendable' ? 'exclamation-circle' : 
+                                   'exclamation-triangle'} me-2"></i>
+                ${recomendacion}
+            `;
+
+                        // Forzar el recálculo del CSS para activar la animación
+                        resultadoDiv.offsetHeight;
+                        resultadoDiv.classList.add("show");
+                    });
+
+                    function calcularRecomendacion(dias, km) {
+                        if (dias < 3) {
+                            return km <= 5 ? "Recomendable: Perfecto para mantener la actividad." :
+                                "No recomendable: Reduce la distancia.";
+                        } else if (dias >= 3 && dias <= 7) {
+                            return km <= 5 ? "Recomendable: Ideal para mantener la resistencia." :
+                                km <= 10 ? "No recomendable: Considera distancias más cortas." :
+                                "Peligroso: Distancia muy larga.";
+                        } else if (dias > 7 && dias <= 30) {
+                            return km <= 3 ? "Recomendable: Reintroducción gradual." :
+                                "Peligroso: Distancia muy larga.";
+                        } else {
+                            return km <= 3 ? "Recomendable: Inicia con distancias cortas." :
+                                "Peligroso: Demasiado tiempo sin correr.";
+                        }
+                    }
+                });
+            </script>
+
 
 
 
