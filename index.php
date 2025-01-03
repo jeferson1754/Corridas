@@ -831,21 +831,47 @@ $tiempo_sin_correr = calcularDiferencia($ultima_fecha, $fecha_actual);
                     });
 
                     function calcularRecomendacion(dias, km) {
+                        // Verifica si la distancia ingresada es válida
+                        if (km <= 0) {
+                            return "Por favor, ingrese una distancia válida.";
+                        }
+
+                        // Evaluación según la cantidad de días sin correr
                         if (dias < 3) {
-                            return km <= 5 ? "Recomendable: Perfecto para mantener la actividad." :
+                            // Menos de 3 días sin correr
+                            return km <= 5 ?
+                                "Recomendable: Perfecto para mantener la actividad." :
                                 "No recomendable: Reduce la distancia.";
                         } else if (dias >= 3 && dias <= 7) {
-                            return km <= 5 ? "Recomendable: Ideal para mantener la resistencia." :
-                                km <= 10 ? "No recomendable: Considera distancias más cortas." :
-                                "Peligroso: Distancia muy larga.";
+                            // Entre 3 y 7 días sin correr
+                            if (km <= 5) {
+                                return "Recomendable: Ideal para mantener la resistencia.";
+                            } else if (km <= 10) {
+                                return "No recomendable: Considera distancias más cortas.";
+                            } else {
+                                return "Peligroso: Distancia muy larga.";
+                            }
                         } else if (dias > 7 && dias <= 30) {
-                            return km <= 3 ? "Recomendable: Reintroducción gradual." :
-                                "Peligroso: Distancia muy larga.";
+                            // Entre 7 y 30 días sin correr
+                            if (km <= 5) {
+                                return "Recomendable: Reintroducción gradual.";
+                            } else if (km <= 10) {
+                                return "No recomendable: Considera distancias más cortas.";
+                            } else {
+                                return "Peligroso: Distancia muy larga para este período sin correr.";
+                            }
                         } else {
-                            return km <= 3 ? "Recomendable: Inicia con distancias cortas." :
-                                "Peligroso: Demasiado tiempo sin correr.";
+                            // Más de 30 días sin correr
+                            if (km <= 3) {
+                                return "Recomendable: Inicia con distancias cortas.";
+                            } else if (km <= 5) {
+                                return "No recomendable: Considera distancias más cortas al reiniciar.";
+                            } else {
+                                return "Peligroso: Demasiado tiempo sin correr para esta distancia.";
+                            }
                         }
                     }
+
                 });
             </script>
 
