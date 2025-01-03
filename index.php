@@ -566,7 +566,6 @@ $tiempo_sin_correr = calcularDiferencia($ultima_fecha, $fecha_actual);
                 $query = "
           SELECT SUM(KM) as best_record 
           FROM registros 
-          WHERE Estado = 'Finalizada'
       ";
                 $result = $conexion->query($query);
 
