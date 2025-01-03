@@ -18,14 +18,36 @@
           <div class="mb-3">
             <label for="kilometros" class="form-label fw-semibold">Kilómetros</label>
             <input
-              type="number"
+              type="text"
               class="form-control shadow-sm"
-              id="kilometros"
-              name="kilometros"
+              id="kilometros_nuevos"
+              name="kilometro0s"
+              min="0"
               required
-              placeholder="Ingrese los kilómetros">
-            <div class="invalid-feedback">Por favor ingrese los kilómetros</div>
+              placeholder="Ingrese los kilómetros (Ejemplo: 3.5 o 3,5)">
+            <div class="invalid-feedback">Por favor ingrese los kilómetros correctamente.</div>
           </div>
+
+          <script>
+            const inputKilometros = document.getElementById('kilometros_nuevos');
+
+            inputKilometros.addEventListener('input', function() {
+              // Reemplazar comas por puntos para usar un formato de número decimal estándar
+              this.value = this.value.replace(',', '.');
+
+              // Validar que el valor no sea negativo y sea un número válido
+              if (!isNaN(this.value) && this.value !== '' && parseFloat(this.value) >= 0) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+              } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+              }
+            });
+          </script>
+
+
+
 
 
           <div class="mb-3">

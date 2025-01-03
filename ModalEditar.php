@@ -22,13 +22,31 @@
             <input
               type="number"
               class="form-control shadow-sm"
-              id="kilometros"
-              value="<?php echo $row['KM']; ?>"
+              id="kilometros_editar"
               name="kilometros"
+              value="<?php echo htmlspecialchars($row['KM']); ?>"
               required
-              placeholder="Ingrese los kilómetros">
-            <div class="invalid-feedback">Por favor ingrese los kilómetros</div>
+              placeholder="Ingrese los kilómetros"
+              min="0"
+            >
+            <div class="invalid-feedback">Por favor ingrese los kilómetros correctamente.</div>
           </div>
+
+          <script>
+            const inputKilometros2 = document.getElementById('kilometros_editar');
+
+            inputKilometros2.addEventListener('input', function() {
+              // Validar que el valor no sea negativo y sea un número válido
+              if (!isNaN(this.value) && this.value !== '' && parseFloat(this.value) >= 0) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+              } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+              }
+            });
+          </script>
+
 
 
           <div class="mb-3">

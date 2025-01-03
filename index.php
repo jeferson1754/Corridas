@@ -293,30 +293,72 @@ $tiempo_sin_correr = calcularDiferencia($ultima_fecha, $fecha_actual);
             margin-bottom: 0.5rem;
         }
 
+        /* Estilos generales */
         .table-card {
-            background: var(--card-bg);
-            border-radius: 1rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .table thead {
-            background: #F8FAFC;
+        /* Estilos de la tabla responsiva */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
-        .table th {
-            font-weight: 600;
-            color: #64748B;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
+        .table {
+            margin-bottom: 0;
         }
 
+        /* Ajustes para móviles */
+        @media (max-width: 768px) {
+            .table-responsive {
+                border: 0;
+            }
+
+            .table-mobile {
+                display: block;
+            }
+
+            .table-mobile thead {
+                display: none;
+            }
+
+            .table-mobile tbody {
+                display: block;
+            }
+
+            .table-mobile tr {
+                display: block;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                margin-bottom: 1rem;
+                padding: 0.75rem;
+            }
+
+            .table-mobile td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border: none;
+                padding: 0.5rem 0;
+            }
+
+            .table-mobile td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                margin-right: 1rem;
+            }
+        }
+
+        /* Estilos del avatar */
         .avatar {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 9999px;
-            background: var(--primary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #4CAF50;
             color: white;
             display: flex;
             align-items: center;
@@ -324,11 +366,42 @@ $tiempo_sin_correr = calcularDiferencia($ultima_fecha, $fecha_actual);
             font-weight: 600;
         }
 
+        /* Grid de gráficos responsivo */
+        .chart-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .chart-card h5 {
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+        }
+
+        /* Estilos para las acciones */
+        .actions-column {
+            min-width: 100px;
+        }
+
+        /* Animaciones para mejorar UX */
+        .table-mobile tr {
+            transition: transform 0.2s ease;
+        }
+
+        .table-mobile tr:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Ajustes para estados y badges */
         .badge {
-            padding: 0.5rem 0.75rem;
-            border-radius: 9999px;
-            font-weight: 500;
-            font-size: 0.75rem;
+            padding: 0.5em 0.8em;
         }
 
         /* Icono de Información */
@@ -785,109 +858,99 @@ $tiempo_sin_correr = calcularDiferencia($ultima_fecha, $fecha_actual);
 
         <!-- Recent Activities -->
         <div class="table-card">
-            <div class="d-flex justify-content-between align-items-center p-4">
-                <h5 class="mb-0">Corridas Recientes</h5>
-                <!--
-                <div class="d-flex gap-2">
-                    <input type="text" class="form-control" placeholder="Buscar datos..."
-                        style="width: 250px;" onkeyup="searchTable()">
-                    <select class="form-select" style="width: 150px;">
-                        <option>Todas</option>
-                        <option>Finalizadas</option>
-                        <option>Pendientes</option>
-                        <option>Incompleta</option>
-                    </select>
-                </div>
-                -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-4">
+                <h5 class="mb-3 mb-md-0">Corridas Recientes</h5>
             </div>
-            <table class="table" id="activitiesTable">
-                <thead>
-                    <tr>
-                        <th>Corredor</th>
-                        <th>Fecha</th>
-                        <th>Distancia</th>
-                        <th>Tiempo</th>
-                        <th>Ritmo</th>
-                        <th>Ubicacion</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $sql = "SELECT *, 
+            <div class="table-responsive">
+                <table class="table table-mobile" id="activitiesTable">
+                    <thead>
+                        <tr>
+                            <th>Corredor</th>
+                            <th>Fecha</th>
+                            <th>Distancia</th>
+                            <th>Tiempo</th>
+                            <th>Ritmo</th>
+                            <th>Ubicacion</th>
+                            <th>Estado</th>
+                            <th class="actions-column">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $sql = "SELECT *, 
                                TIME_FORMAT(SEC_TO_TIME(
                                  TIME_TO_SEC(Tiempo) / KM
                                ), '%i:%s') as pace 
                                FROM registros 
                                ORDER BY Fecha DESC 
                                LIMIT 10";
-                    $result = mysqli_query($conexion, $sql);
+                        $result = mysqli_query($conexion, $sql);
 
-                    while ($row = mysqli_fetch_array($result)) {
-                        $statusClass = $row['Estado'] == 'Finalizada' ? 'bg-success' : 'bg-warning';
-                        $pace[] = $row['pace'];
-                    ?>
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="avatar">
-                                        <?php echo substr($row['Usuario'], 0, 1); ?>
+                        while ($row = mysqli_fetch_array($result)) {
+                            $statusClass = $row['Estado'] == 'Finalizada' ? 'bg-success' : 'bg-warning';
+                            $pace[] = $row['pace'];
+                        ?>
+                            <tr>
+                                <td data-label="Corredor">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar">
+                                            <?php echo substr($row['Usuario'], 0, 1); ?>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold"><?php echo $row['Usuario']; ?></div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div class="fw-semibold"><?php echo $row['Usuario']; ?></div>
+                                </td>
+                                <td data-label="Fecha">
+                                    <div><?php echo date('d-m-Y', strtotime($row['Fecha'])); ?></div>
+                                    <small class="text-muted"><?php echo date('h:i A', strtotime($row['Fecha'])); ?></small>
+                                </td>
 
+                                <td data-label="Distancia">
+                                    <div class="fw-semibold"><?php echo $row['KM']; ?> km</div>
+                                </td>
+                                <td data-label="Tiempo"><?php echo $row['Tiempo']; ?></td>
+                                <td data-label="Ritmo"><?php echo $row['pace'] ?? 0; ?> min/km</td>
+                                <td data-label="Ubicación">
+                                    <i class="fas fa-map-marker-alt text-primary me-1"></i>
+                                    <?php echo $row['Ubicacion']; ?>
+                                </td>
+                                <td data-label="Estado">
+                                    <span class="badge <?php echo $statusClass; ?>">
+                                        <?php echo $row['Estado']; ?>
+                                    </span>
+                                </td>
+                                <td data-label="Acciones">
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#editChildresn<?php echo $row['ID']; ?>">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light text-danger" data-bs-toggle="modal" data-bs-target="#editChildresn1<?php echo $row['ID']; ?>">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div><?php echo date('d-m-Y', strtotime($row['Fecha'])); ?></div>
-                                <small class="text-muted"><?php echo date('h:i A', strtotime($row['Fecha'])); ?></small>
-                            </td>
-
-                            <td>
-                                <div class="fw-semibold"><?php echo $row['KM']; ?> km</div>
-                            </td>
-                            <td><?php echo $row['Tiempo']; ?></td>
-                            <td><?php echo $row['pace'] ?? 0; ?> min/km</td>
-                            <td>
-                                <i class="fas fa-map-marker-alt text-primary me-1"></i>
-                                <?php echo $row['Ubicacion']; ?>
-                            </td>
-                            <td>
-                                <span class="badge <?php echo $statusClass; ?>">
-                                    <?php echo $row['Estado']; ?>
-                                </span>
-                            </td>
-                            <td>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-light" data-bs-toggle="modal"
-                                        data-bs-target="#editChildresn<?php echo $row['ID']; ?>">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-light text-danger" data-bs-toggle="modal"
-                                        data-bs-target="#editChildresn1<?php echo $row['ID']; ?>">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php include('ModalEditar.php'); ?>
-                        <?php include('ModalDelete.php'); ?>
-                    <?php } ?>
-                </tbody>
-            </table>
+                                </td>
+                            </tr>
+                            <?php include('ModalEditar.php'); ?>
+                            <?php include('ModalDelete.php'); ?>
+                        <?php } ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
-
         <!-- Charts Grid -->
         <div class="chart-grid mt-4">
             <div class="chart-card">
                 <h5>Distancia Recorrida por Fecha</h5>
-                <canvas id="distanceChart"></canvas>
+                <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="distanceChart"></canvas>
+                </div>
             </div>
             <div class="chart-card">
                 <h5>Ritmo Promedio por Intervalo de Tiempo</h5>
-                <canvas id="paceChart"></canvas>
+                <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="paceChart"></canvas>
+                </div>
             </div>
         </div>
     </main>
@@ -1014,6 +1077,11 @@ $tiempo_sin_correr = calcularDiferencia($ultima_fecha, $fecha_actual);
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         const tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.distanceChart) window.distanceChart.resize();
+            if (window.paceChart) window.paceChart.resize();
         });
     </script>
 
